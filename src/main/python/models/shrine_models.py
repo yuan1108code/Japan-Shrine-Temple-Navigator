@@ -95,7 +95,6 @@ class ShrineInfo(LocationBase):
     
     def __post_init__(self):
         """初始化後自動設定標籤"""
-        super().__post_init__()
         self._auto_assign_tags()
     
     def _auto_assign_tags(self):

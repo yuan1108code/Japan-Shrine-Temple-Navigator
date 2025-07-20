@@ -123,21 +123,19 @@ class TaggedEntity:
 
 
 @dataclass 
-class LocationBase(TaggedEntity):
+class LocationBase:
     """地點基礎資訊"""
     # 基本識別
     id: str
     name_jp: str
-    name_en: Optional[str] = None
-    name_local: Optional[str] = None
-    
-    # 地理位置
     prefecture: str
     city: str
     address: str
     coordinates: CoordinateInfo
     
-    # 基本資訊
+    # 可選資訊
+    name_en: Optional[str] = None
+    name_local: Optional[str] = None
     description: Optional[str] = None
     description_en: Optional[str] = None
     
@@ -145,10 +143,33 @@ class LocationBase(TaggedEntity):
     contact: ContactInfo = field(default_factory=ContactInfo)
     business_hours: BusinessHours = field(default_factory=BusinessHours)
     
+    # 標籤系統
+    tags: List[TagCategory] = field(default_factory=list)
+    custom_tags: List[str] = field(default_factory=list)
+    
     # 元數據
     created_at: datetime = field(default_factory=datetime.now)
     updated_at: datetime = field(default_factory=datetime.now)
     data_source: str = "manual"  # manual, google_maps, crawled
+    
+    def add_tag(self, tag: Union[TagCategory, str]):
+        """添加標籤"""
+        if isinstance(tag, TagCategory):
+            if tag not in self.tags:
+                self.tags.append(tag)
+        else:
+            if tag not in self.custom_tags:
+                self.custom_tags.append(tag)
+    
+    def get_all_tags(self) -> List[str]:
+        """獲取所有標籤（包含自定義）"""
+        return [tag.value for tag in self.tags] + self.custom_tags
+    
+    def has_tag(self, tag: Union[TagCategory, str]) -> bool:
+        """檢查是否包含特定標籤"""
+        if isinstance(tag, TagCategory):
+            return tag in self.tags
+        return tag in self.custom_tags
     
     def to_dict(self) -> Dict[str, Any]:
         """轉換為字典格式"""

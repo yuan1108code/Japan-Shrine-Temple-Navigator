@@ -8,7 +8,7 @@ from .base_models import (
     CoordinateInfo,
     BusinessHours,
     ContactInfo,
-    TaggedEntity
+    TagCategory
 )
 
 from .shrine_models import (
@@ -38,7 +38,7 @@ __all__ = [
     'CoordinateInfo', 
     'BusinessHours',
     'ContactInfo',
-    'TaggedEntity',
+    'TagCategory',
     'ShrineInfo',
     'Deity',
     'Festival',
@@ -49,7 +49,6 @@ __all__ = [
     'GoogleMapsData',
     'UnifiedLocation',
     'LocationCategory',
-    'TagCategory',
     'GeoQuery',
     'SearchResult'
 ]
