@@ -9,6 +9,10 @@ import os
 from datetime import datetime
 import hashlib
 from googleapiclient.discovery import build
+from dotenv import load_dotenv
+
+# 載入 .env 檔案
+load_dotenv()
 
 # API 設定 - 使用環境變數保護 API 金鑰
 PERPLEXITY_API_KEY = os.getenv("PERPLEXITY_API_KEY")
@@ -103,7 +107,7 @@ class ShrineDataEnhancer:
         query = f"{shrine_name} {address} 神社 寺 歷史 參拜時間 祭典 御守 御朱印 交通 最近車站 建築樣式 祭神 文化財"
         
         payload = {
-            "model": "llama-3.1-sonar-large-128k-online",
+            "model": "sonar",
             "messages": [
                 {
                     "role": "system",
@@ -551,8 +555,8 @@ def save_to_json(data: List[Dict[str, Any]], output_path: str):
 
 if __name__ == "__main__":
     # 設定路徑
-    csv_path = "data/shrines_detail.csv"
-    output_path = "output/enhanced_shrines.json"
+    csv_path = "/Users/zhuboyuan/Desktop/University-NCHU/NCHU-Project/Project-FUKUI/src/src-LLM-Shrine/data/shrines_detail.csv"
+    output_path = "/Users/zhuboyuan/Desktop/University-NCHU/NCHU-Project/Project-FUKUI/src/src-LLM-Shrine/output/enhanced_shrines_full.json"
     
     print("🏯 福井神社資料增強程式")
     print("=" * 50)
