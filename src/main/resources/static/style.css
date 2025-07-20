@@ -1,0 +1,352 @@
+/* 福井神社導航 - 自定義樣式 */
+
+:root {
+    --primary-color: #0d6efd;
+    --secondary-color: #6c757d;
+    --success-color: #198754;
+    --warning-color: #ffc107;
+    --info-color: #0dcaf0;
+    --danger-color: #dc3545;
+    --light-color: #f8f9fa;
+    --dark-color: #212529;
+}
+
+/* 全域樣式 */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+    background-color: #f8f9fa;
+}
+
+/* 英雄區塊 */
+.hero-section {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 4rem 2rem;
+    border-radius: 15px;
+    margin-bottom: 3rem;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+
+.hero-section h1 {
+    font-size: 3.5rem;
+    margin-bottom: 1rem;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+.hero-section .lead {
+    font-size: 1.4rem;
+    margin-bottom: 2rem;
+    opacity: 0.9;
+}
+
+/* 卡片樣式 */
+.card {
+    border: none;
+    border-radius: 15px;
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+}
+
+.card-header {
+    border-radius: 15px 15px 0 0 !important;
+    padding: 1.5rem;
+    font-weight: 600;
+}
+
+.card-body {
+    padding: 2rem;
+}
+
+/* 表單樣式 */
+.form-control, .form-select {
+    border-radius: 10px;
+    border: 2px solid #e9ecef;
+    padding: 0.75rem 1rem;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+/* 按鈕樣式 */
+.btn {
+    border-radius: 10px;
+    padding: 0.75rem 1.5rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    border: none;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+/* 結果顯示區域 */
+.result-item {
+    background: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    border-left: 4px solid var(--primary-color);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    transition: transform 0.2s ease;
+}
+
+.result-item:hover {
+    transform: translateX(5px);
+}
+
+.result-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--dark-color);
+    margin-bottom: 0.5rem;
+}
+
+.result-content {
+    color: #6c757d;
+    line-height: 1.6;
+}
+
+.result-meta {
+    font-size: 0.9rem;
+    color: #6c757d;
+    margin-top: 0.5rem;
+}
+
+.similarity-score {
+    background: var(--success-color);
+    color: white;
+    padding: 0.2rem 0.5rem;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+/* AI 問答樣式 */
+.ai-response {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 15px;
+    padding: 2rem;
+    margin-bottom: 1rem;
+    position: relative;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+
+.ai-response::before {
+    content: '';
+    position: absolute;
+    top: -10px;
+    left: 2rem;
+    width: 0;
+    height: 0;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-bottom: 10px solid #667eea;
+}
+
+.ai-response .answer {
+    font-size: 1.1rem;
+    line-height: 1.7;
+    margin-bottom: 1rem;
+}
+
+.confidence-score {
+    background: rgba(255,255,255,0.2);
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    display: inline-block;
+}
+
+/* 特色區塊 */
+.feature-box {
+    padding: 2rem;
+    text-align: center;
+    border-radius: 15px;
+    transition: transform 0.3s ease;
+}
+
+.feature-box:hover {
+    transform: translateY(-10px);
+}
+
+/* 位置資訊 */
+.location-info {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    color: white;
+    padding: 1.5rem;
+    border-radius: 10px;
+    margin-bottom: 1rem;
+}
+
+.location-coordinates {
+    font-family: 'Courier New', monospace;
+    background: rgba(255,255,255,0.2);
+    padding: 0.5rem;
+    border-radius: 5px;
+    margin-top: 0.5rem;
+}
+
+/* 附近景點 */
+.nearby-item {
+    background: white;
+    border-radius: 10px;
+    padding: 1rem;
+    margin-bottom: 0.5rem;
+    border-left: 3px solid var(--info-color);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.distance-badge {
+    background: var(--info-color);
+    color: white;
+    padding: 0.2rem 0.5rem;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+/* 統計資訊 */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.stats-item {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 10px;
+    text-align: center;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+.stats-number {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.stats-label {
+    font-size: 0.9rem;
+    color: #6c757d;
+    margin-top: 0.5rem;
+}
+
+/* API 狀態指示器 */
+.api-status {
+    position: relative;
+    display: inline-block;
+}
+
+.status-online {
+    background: var(--success-color) !important;
+    animation: pulse 2s infinite;
+}
+
+.status-offline {
+    background: var(--danger-color) !important;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.7; }
+    100% { opacity: 1; }
+}
+
+/* 載入動畫 */
+.loading-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* 錯誤訊息 */
+.error-message {
+    background: #f8d7da;
+    color: #721c24;
+    padding: 1rem;
+    border-radius: 10px;
+    border-left: 4px solid var(--danger-color);
+    margin-bottom: 1rem;
+}
+
+.success-message {
+    background: #d1edff;
+    color: #0c5460;
+    padding: 1rem;
+    border-radius: 10px;
+    border-left: 4px solid var(--info-color);
+    margin-bottom: 1rem;
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+    .hero-section h1 {
+        font-size: 2.5rem;
+    }
+    
+    .hero-section .lead {
+        font-size: 1.2rem;
+    }
+    
+    .card-body {
+        padding: 1rem;
+    }
+    
+    .feature-box {
+        padding: 1rem;
+        margin-bottom: 2rem;
+    }
+}
+
+/* 無障礙設計 */
+.visually-hidden {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}
+
+/* 印刷樣式 */
+@media print {
+    .navbar, .btn, footer {
+        display: none !important;
+    }
+    
+    .card {
+        box-shadow: none !important;
+        border: 1px solid #ddd !important;
+    }
+    
+    .hero-section {
+        background: white !important;
+        color: black !important;
+    }
+}

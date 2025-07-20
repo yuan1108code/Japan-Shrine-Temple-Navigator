@@ -11,11 +11,13 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Query, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 import uvicorn
 
 from .api.rag_api import RAGAPIHandler, RAGConfig
 from .services.vector_db import VectorDatabase, VectorDBConfig
+from .services.geofencing import GeofenceManager, GeofenceZone, GeofenceEvent, Coordinates, FenceType, TriggerType
 
 
 # 設定日誌
@@ -46,6 +48,26 @@ class RecommendationRequest(BaseModel):
     location_type: Optional[str] = Field(None, description="地點類型")
 
 
+class GeofenceZoneRequest(BaseModel):
+    """地理柵欄區域請求模型"""
+    zone_id: str = Field(..., description="區域 ID")
+    name: str = Field(..., description="區域名稱")
+    fence_type: str = Field(..., description="柵欄類型 (circular/rectangular/polygon)")
+    center_lat: float = Field(..., description="中心點緯度")
+    center_lng: float = Field(..., description="中心點經度")
+    radius: Optional[float] = Field(None, description="半徑（公尺，圓形柵欄用）")
+    bounds: Optional[List[Dict[str, float]]] = Field(None, description="邊界點（矩形或多邊形用）")
+    location_ids: Optional[List[str]] = Field([], description="關聯地點 ID")
+    triggers: Optional[List[str]] = Field(["enter"], description="觸發類型")
+
+
+class LocationCheckRequest(BaseModel):
+    """位置檢查請求模型"""
+    user_id: str = Field(..., description="用戶 ID")
+    latitude: float = Field(..., description="緯度")
+    longitude: float = Field(..., description="經度")
+
+
 class SearchRequest(BaseModel):
     """搜尋請求模型"""
     query: str = Field(..., description="搜尋關鍵詞", min_length=1, max_length=200)
@@ -56,12 +78,13 @@ class SearchRequest(BaseModel):
 # 全域變數
 rag_handler: Optional[RAGAPIHandler] = None
 vector_db: Optional[VectorDatabase] = None
+geofence_manager: Optional[GeofenceManager] = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """應用程式生命週期管理"""
-    global rag_handler, vector_db
+    global rag_handler, vector_db, geofence_manager
     
     # 啟動時初始化
     logger.info("Initializing Japan Shrine Navigator API...")
@@ -95,6 +118,9 @@ async def lifespan(app: FastAPI):
         )
         rag_handler = RAGAPIHandler(str(vector_db_path), rag_config)
         
+        # 初始化地理柵欄管理器
+        geofence_manager = GeofenceManager()
+        
         # 獲取資料庫統計
         stats = vector_db.get_collection_stats()
         logger.info(f"Vector database loaded: {stats}")
@@ -127,7 +153,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 # 依賴注入
 def get_rag_handler() -> RAGAPIHandler:
     """獲取 RAG 處理器"""
@@ -141,6 +166,13 @@ def get_vector_db() -> VectorDatabase:
     if vector_db is None:
         raise HTTPException(status_code=503, detail="Vector database not initialized")
     return vector_db
+
+
+def get_geofence_manager() -> GeofenceManager:
+    """獲取地理柵欄管理器"""
+    if geofence_manager is None:
+        raise HTTPException(status_code=503, detail="Geofence manager not initialized")
+    return geofence_manager
 
 
 # API 端點
@@ -326,6 +358,224 @@ async def get_service_stats(handler: RAGAPIHandler = Depends(get_rag_handler)):
         raise HTTPException(status_code=500, detail="獲取統計資訊時發生錯誤")
 
 
+# 地理柵欄端點
+@app.post("/geofence/zones")
+async def create_geofence_zone(
+    request: GeofenceZoneRequest,
+    manager: GeofenceManager = Depends(get_geofence_manager)
+):
+    """創建地理柵欄區域"""
+    try:
+        # 轉換請求資料
+        center = Coordinates(latitude=request.center_lat, longitude=request.center_lng)
+        
+        bounds = None
+        if request.bounds:
+            bounds = [Coordinates(latitude=b["latitude"], longitude=b["longitude"]) 
+                     for b in request.bounds]
+        
+        zone = GeofenceZone(
+            zone_id=request.zone_id,
+            name=request.name,
+            fence_type=FenceType(request.fence_type),
+            center=center,
+            radius=request.radius,
+            bounds=bounds,
+            location_ids=request.location_ids or [],
+            triggers=[TriggerType(t) for t in request.triggers]
+        )
+        
+        success = manager.create_zone(zone)
+        
+        if success:
+            return {
+                "success": True,
+                "data": zone.to_dict(),
+                "message": "地理柵欄區域創建成功"
+            }
+        else:
+            raise HTTPException(status_code=400, detail="創建地理柵欄區域失敗")
+        
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"參數錯誤: {str(e)}")
+    except Exception as e:
+        logger.error(f"Error creating geofence zone: {e}")
+        raise HTTPException(status_code=500, detail="創建地理柵欄區域時發生錯誤")
+
+
+@app.get("/geofence/zones")
+async def list_geofence_zones(manager: GeofenceManager = Depends(get_geofence_manager)):
+    """列出所有地理柵欄區域"""
+    try:
+        zones = manager.list_zones()
+        return {
+            "success": True,
+            "data": {
+                "zones": [zone.to_dict() for zone in zones],
+                "total": len(zones)
+            }
+        }
+    except Exception as e:
+        logger.error(f"Error listing geofence zones: {e}")
+        raise HTTPException(status_code=500, detail="獲取地理柵欄區域時發生錯誤")
+
+
+@app.get("/geofence/zones/{zone_id}")
+async def get_geofence_zone(
+    zone_id: str,
+    manager: GeofenceManager = Depends(get_geofence_manager)
+):
+    """獲取特定地理柵欄區域"""
+    try:
+        zone = manager.get_zone(zone_id)
+        if not zone:
+            raise HTTPException(status_code=404, detail="地理柵欄區域不存在")
+        
+        return {
+            "success": True,
+            "data": zone.to_dict()
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting geofence zone: {e}")
+        raise HTTPException(status_code=500, detail="獲取地理柵欄區域時發生錯誤")
+
+
+@app.delete("/geofence/zones/{zone_id}")
+async def delete_geofence_zone(
+    zone_id: str,
+    manager: GeofenceManager = Depends(get_geofence_manager)
+):
+    """刪除地理柵欄區域"""
+    try:
+        success = manager.delete_zone(zone_id)
+        if success:
+            return {
+                "success": True,
+                "message": "地理柵欄區域刪除成功"
+            }
+        else:
+            raise HTTPException(status_code=404, detail="地理柵欄區域不存在")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting geofence zone: {e}")
+        raise HTTPException(status_code=500, detail="刪除地理柵欄區域時發生錯誤")
+
+
+@app.post("/geofence/check")
+async def check_user_location(
+    request: LocationCheckRequest,
+    manager: GeofenceManager = Depends(get_geofence_manager)
+):
+    """檢查用戶位置並觸發地理柵欄事件"""
+    try:
+        location = Coordinates(latitude=request.latitude, longitude=request.longitude)
+        events = manager.check_location(request.user_id, location)
+        
+        return {
+            "success": True,
+            "data": {
+                "events": [event.to_dict() for event in events],
+                "current_zones": manager.get_user_current_zones(request.user_id),
+                "total_events": len(events)
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Error checking user location: {e}")
+        raise HTTPException(status_code=500, detail="檢查用戶位置時發生錯誤")
+
+
+@app.get("/geofence/nearby")
+async def get_nearby_zones(
+    latitude: float = Query(..., description="緯度"),
+    longitude: float = Query(..., description="經度"),
+    max_distance: float = Query(1000, description="最大距離（公尺）"),
+    manager: GeofenceManager = Depends(get_geofence_manager)
+):
+    """獲取附近的地理柵欄區域"""
+    try:
+        location = Coordinates(latitude=latitude, longitude=longitude)
+        nearby_zones = manager.get_nearby_zones(location, max_distance)
+        
+        result = []
+        for zone, distance in nearby_zones:
+            zone_data = zone.to_dict()
+            zone_data["distance"] = distance
+            result.append(zone_data)
+        
+        return {
+            "success": True,
+            "data": {
+                "zones": result,
+                "search_location": {"latitude": latitude, "longitude": longitude},
+                "max_distance": max_distance,
+                "total_found": len(result)
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting nearby zones: {e}")
+        raise HTTPException(status_code=500, detail="獲取附近地理柵欄區域時發生錯誤")
+
+
+@app.get("/geofence/events")
+async def get_geofence_events(
+    user_id: Optional[str] = Query(None, description="用戶 ID"),
+    zone_id: Optional[str] = Query(None, description="區域 ID"),
+    hours: int = Query(24, description="時間範圍（小時）"),
+    manager: GeofenceManager = Depends(get_geofence_manager)
+):
+    """獲取地理柵欄事件歷史"""
+    try:
+        events = manager.get_event_history(user_id=user_id, zone_id=zone_id, hours=hours)
+        
+        return {
+            "success": True,
+            "data": {
+                "events": [event.to_dict() for event in events],
+                "filters": {
+                    "user_id": user_id,
+                    "zone_id": zone_id,
+                    "hours": hours
+                },
+                "total_events": len(events)
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting geofence events: {e}")
+        raise HTTPException(status_code=500, detail="獲取地理柵欄事件時發生錯誤")
+
+
+@app.post("/geofence/auto-create")
+async def auto_create_location_zones(
+    default_radius: float = Query(100, description="預設半徑（公尺）"),
+    manager: GeofenceManager = Depends(get_geofence_manager),
+    db: VectorDatabase = Depends(get_vector_db)
+):
+    """為現有地點自動創建地理柵欄區域"""
+    try:
+        # 從向量資料庫獲取地點資料
+        # 這裡需要實現從資料庫提取地點的功能
+        # 暫時返回創建狀態
+        
+        return {
+            "success": True,
+            "message": "自動創建地理柵欄功能開發中",
+            "data": {
+                "created_zones": 0,
+                "default_radius": default_radius
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Error auto-creating zones: {e}")
+        raise HTTPException(status_code=500, detail="自動創建地理柵欄時發生錯誤")
+
+
 # 錯誤處理
 @app.exception_handler(404)
 async def not_found_handler(request, exc):
@@ -343,6 +593,16 @@ async def internal_error_handler(request, exc):
         "error": "伺服器內部錯誤",
         "detail": "請稍後再試或聯繫系統管理員"
     }
+
+
+# 設定靜態檔案服務 (在所有 API 路由之後)
+project_root = Path(__file__).parent.parent.parent.parent
+static_path = project_root / "src" / "main" / "resources" / "static"
+
+if static_path.exists():
+    app.mount("/static", StaticFiles(directory=str(static_path)), name="static")
+    # 前端頁面路由應該在最後，避免覆蓋 API 路由
+    app.mount("/web", StaticFiles(directory=str(static_path), html=True), name="frontend")
 
 
 if __name__ == "__main__":
